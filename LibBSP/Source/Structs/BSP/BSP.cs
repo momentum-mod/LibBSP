@@ -1763,6 +1763,42 @@ namespace LibBSP {
 		}
 
 		/// <summary>
+		/// A <see cref="Lump{LibBSP.LeafWaterData}"/> of <see cref="LeafWaterData"/> objects in the BSP file, if available.
+		/// </summary>
+		public Lump<LeafWaterData> LeafWaterData {
+			get {
+				int index = LibBSP.LeafWaterData.GetIndexForLump(MapType);
+
+				if (index >= 0) {
+					if (!_lumps.ContainsKey(index)) {
+						_lumps.Add(index, LibBSP.LeafWaterData.LumpFactory(Reader.ReadLump(this[index]), this, this[index]));
+					}
+
+					return (Lump<LeafWaterData>)_lumps[index];
+				}
+
+				return null;
+			}
+			set {
+				int index = LibBSP.LeafWaterData.GetIndexForLump(MapType);
+				if (index >= 0) {
+					_lumps[index] = value;
+					value.Bsp = this;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Has the <see cref="LeafWaterData"/> lump been loaded yet?
+		/// </summary>
+		public bool LeafWaterDataLoaded {
+			get {
+				int index = LibBSP.LeafWaterData.GetIndexForLump(MapType);
+				return LumpLoaded(index);
+			}
+		}
+
+		/// <summary>
 		/// A <see cref="Lump{LibBSP.Primitive}"/> of <see cref="Primitive"/> objects in the BSP file, if available.
 		/// </summary>
 		public Lump<Primitive> Primitives {

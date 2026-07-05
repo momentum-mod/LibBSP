@@ -119,6 +119,7 @@
     <Compile Include="Source\Structs\BSP\Cubemap.cs" />
     <Compile Include="Source\Structs\BSP\DisplacementVertex.cs" />
     <Compile Include="Source\Structs\BSP\Patch.cs" />
+    <Compile Include="Source\Structs\BSP\LeafWaterData.cs" />
     <Compile Include="Source\Structs\BSP\WorldLight.cs" />
     <Compile Include="Source\Structs\BSP\PlaneBSP.cs" />
     <Compile Include="Source\Structs\BSP\Primitive.cs" />
