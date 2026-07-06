@@ -871,6 +871,186 @@ namespace LibBSP {
 		}
 
 		/// <summary>
+		/// A <see cref="LibBSP.LightGrid"/> object holding light grid data for this <see cref="BSP"/>.
+		/// </summary>
+		public LightGrid LightGrid {
+			get {
+				int index = LightGrid.GetIndexForLump(MapType);
+
+				if (index >= 0) {
+					if (!_lumps.ContainsKey(index)) {
+						_lumps.Add(index, new LightGrid(Reader.ReadLump(this[index]), this, this[index]));
+					}
+
+					return (LightGrid)_lumps[index];
+				}
+
+				return null;
+			}
+			set {
+				int index = LightGrid.GetIndexForLump(MapType);
+				if (index >= 0) {
+					_lumps[index] = value;
+					value.Bsp = this;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Has the <see cref="LibBSP.LightGrid"/> lump been loaded yet?
+		/// </summary>
+		public bool LightGridLoaded {
+			get {
+				int index = LightGrid.GetIndexForLump(MapType);
+				return LumpLoaded(index);
+			}
+		}
+
+		/// <summary>
+		/// A <see cref="Lump{LeafAmbientLighting}"/> of <see cref="LibBSP.LeafAmbientLighting"/> objects in the BSP file, if available.
+		/// </summary>
+		public Lump<LeafAmbientLighting> LeafAmbientLighting {
+			get {
+				int index = LibBSP.LeafAmbientLighting.GetIndexForLump(MapType);
+
+				if (index >= 0) {
+					if (!_lumps.ContainsKey(index)) {
+						_lumps.Add(index, LibBSP.LeafAmbientLighting.LumpFactory(Reader.ReadLump(this[index]), this, this[index]));
+					}
+
+					return (Lump<LeafAmbientLighting>)_lumps[index];
+				}
+
+				return null;
+			}
+			set {
+				int index = LibBSP.LeafAmbientLighting.GetIndexForLump(MapType);
+				if (index >= 0) {
+					_lumps[index] = value;
+					value.Bsp = this;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Has the <see cref="LibBSP.LeafAmbientLighting"/> lump been loaded yet?
+		/// </summary>
+		public bool LeafAmbientLightingLoaded {
+			get {
+				int index = LibBSP.LeafAmbientLighting.GetIndexForLump(MapType);
+				return LumpLoaded(index);
+			}
+		}
+
+		/// <summary>
+		/// A <see cref="Lump{LeafAmbientLighting}"/> of HDR <see cref="LibBSP.LeafAmbientLighting"/> objects in the BSP file, if available.
+		/// </summary>
+		public Lump<LeafAmbientLighting> LeafAmbientLightingHDR {
+			get {
+				int index = LibBSP.LeafAmbientLighting.GetIndexForHDRLump(MapType);
+
+				if (index >= 0) {
+					if (!_lumps.ContainsKey(index)) {
+						_lumps.Add(index, LibBSP.LeafAmbientLighting.LumpFactory(Reader.ReadLump(this[index]), this, this[index]));
+					}
+
+					return (Lump<LeafAmbientLighting>)_lumps[index];
+				}
+
+				return null;
+			}
+			set {
+				int index = LibBSP.LeafAmbientLighting.GetIndexForHDRLump(MapType);
+				if (index >= 0) {
+					_lumps[index] = value;
+					value.Bsp = this;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Has the HDR <see cref="LibBSP.LeafAmbientLighting"/> lump been loaded yet?
+		/// </summary>
+		public bool LeafAmbientLightingHDRLoaded {
+			get {
+				int index = LibBSP.LeafAmbientLighting.GetIndexForHDRLump(MapType);
+				return LumpLoaded(index);
+			}
+		}
+
+		/// <summary>
+		/// A <see cref="Lump{LeafAmbientIndex}"/> of <see cref="LibBSP.LeafAmbientIndex"/> objects in the BSP file, if available.
+		/// </summary>
+		public Lump<LeafAmbientIndex> LeafAmbientIndices {
+			get {
+				int index = LeafAmbientIndex.GetIndexForLump(MapType);
+
+				if (index >= 0) {
+					if (!_lumps.ContainsKey(index)) {
+						_lumps.Add(index, LeafAmbientIndex.LumpFactory(Reader.ReadLump(this[index]), this, this[index]));
+					}
+
+					return (Lump<LeafAmbientIndex>)_lumps[index];
+				}
+
+				return null;
+			}
+			set {
+				int index = LeafAmbientIndex.GetIndexForLump(MapType);
+				if (index >= 0) {
+					_lumps[index] = value;
+					value.Bsp = this;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Has the <see cref="LibBSP.LeafAmbientIndex"/> lump been loaded yet?
+		/// </summary>
+		public bool LeafAmbientIndicesLoaded {
+			get {
+				int index = LeafAmbientIndex.GetIndexForLump(MapType);
+				return LumpLoaded(index);
+			}
+		}
+
+		/// <summary>
+		/// A <see cref="Lump{LeafAmbientIndex}"/> of HDR <see cref="LibBSP.LeafAmbientIndex"/> objects in the BSP file, if available.
+		/// </summary>
+		public Lump<LeafAmbientIndex> LeafAmbientIndicesHDR {
+			get {
+				int index = LeafAmbientIndex.GetIndexForHDRLump(MapType);
+
+				if (index >= 0) {
+					if (!_lumps.ContainsKey(index)) {
+						_lumps.Add(index, LeafAmbientIndex.LumpFactory(Reader.ReadLump(this[index]), this, this[index]));
+					}
+
+					return (Lump<LeafAmbientIndex>)_lumps[index];
+				}
+
+				return null;
+			}
+			set {
+				int index = LeafAmbientIndex.GetIndexForHDRLump(MapType);
+				if (index >= 0) {
+					_lumps[index] = value;
+					value.Bsp = this;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Has the HDR <see cref="LibBSP.LeafAmbientIndex"/> lump been loaded yet?
+		/// </summary>
+		public bool LeafAmbientIndicesHDRLoaded {
+			get {
+				int index = LeafAmbientIndex.GetIndexForHDRLump(MapType);
+				return LumpLoaded(index);
+			}
+		}
+
+		/// <summary>
 		/// A <see cref="LibBSP.Occlusion"/> object holding occlusion data for this <see cref="BSP"/>.
 		/// </summary>
 		public Occlusion Occlusion {
