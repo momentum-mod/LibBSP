@@ -106,6 +106,9 @@
     <Compile Include="Source\Structs\BSP\Edge.cs" />
     <Compile Include="Source\Structs\BSP\Face.cs" />
     <Compile Include="Source\Structs\BSP\Leaf.cs" />
+    <Compile Include="Source\Structs\BSP\LeafAmbientIndex.cs" />
+    <Compile Include="Source\Structs\BSP\LeafAmbientLighting.cs" />
+    <Compile Include="Source\Structs\BSP\LightGridPoint.cs" />
     <Compile Include="Source\Structs\BSP\LODTerrain.cs" />
     <Compile Include="Source\Structs\BSP\Lumps\PakFile.cs" />
     <Compile Include="Source\Structs\BSP\Lumps\FaceIds.cs" />
