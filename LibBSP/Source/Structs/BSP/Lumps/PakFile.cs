@@ -2,6 +2,7 @@
 using SharpCompress.Common;
 using System;
 using System.IO;
+using System.Linq;
 
 namespace LibBSP {
 	
@@ -77,10 +78,49 @@ namespace LibBSP {
 		}
 
 		public void SetZipArchive(ZipArchive zip, bool compress) {
+			Data = GetZipBytes(zip, compress);
+		}
+
+		/// <summary>
+		/// Re-zips every file in the pak file, LZMA compressed or uncompressed.
+		/// </summary>
+		/// <param name="compress">Whether to LZMA compress the files.</param>
+		public void Rezip(bool compress) {
+			Data = Rezip(Data, compress);
+		}
+
+		/// <summary>
+		/// Re-zips every file in pak file data, LZMA compressed or uncompressed.
+		/// </summary>
+		/// <param name="data">The pak file data.</param>
+		/// <param name="compress">Whether to LZMA compress the files.</param>
+		/// <returns>The re-zipped data, or <paramref name="data"/> if its files are already compressed that way.</returns>
+		public static byte[] Rezip(byte[] data, bool compress) {
+			if (data.Length == 0) {
+				return data;
+			}
+
+			CompressionType compressionType = compress ? CompressionType.LZMA : CompressionType.None;
+			using (ZipArchive zip = ZipArchive.Open(new MemoryStream(data))) {
+				if (zip.Entries.Where(x => !x.IsDirectory).All(x => x.CompressionType == compressionType)) {
+					return data;
+				}
+
+				return GetZipBytes(zip, compress);
+			}
+		}
+
+		/// <summary>
+		/// Saves <paramref name="zip"/>, with all its files LZMA compressed or uncompressed.
+		/// </summary>
+		/// <param name="zip">The zip archive.</param>
+		/// <param name="compress">Whether to LZMA compress the files.</param>
+		/// <returns>The zip archive's data.</returns>
+		private static byte[] GetZipBytes(ZipArchive zip, bool compress) {
 			using (var stream = new MemoryStream()) {
 				var compressionType = compress ? CompressionType.LZMA : CompressionType.None;
 				zip.SaveTo(stream, new SharpCompress.Writers.WriterOptions(compressionType));
-				Data = stream.ToArray();
+				return stream.ToArray();
 			}
 		}
 	}

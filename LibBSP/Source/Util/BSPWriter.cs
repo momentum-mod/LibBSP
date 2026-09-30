@@ -32,7 +32,10 @@ namespace LibBSP {
 		/// Writes the <see cref="BSP"/> to the file at <paramref name="path"/>.
 		/// </summary>
 		/// <param name="path">The file path to write the <see cref="BSP"/> to.</param>
-		/// <param name="compress">Whether to LZMA compress the lumps. Only Source engine maps can be compressed.</param>
+		/// <param name="compress">
+		/// Whether to LZMA compress the lumps and the files in the pak file. Only Source engine maps can be compressed.
+		/// Without it, the pak file is written as it is.
+		/// </param>
 		/// <exception cref="NotSupportedException"><paramref name="compress"/> is set for a map that isn't a Source engine map.</exception>
 		public void WriteBSP(string path, bool compress) {
 			if (_bsp.MapType.IsSubtypeOf(MapType.Source)) {
@@ -61,7 +64,7 @@ namespace LibBSP {
 		/// Writes a Source engine <see cref="BSP"/> to the file at <paramref name="path"/>, with every lump aligned to 4 bytes.
 		/// </summary>
 		/// <param name="path">The file path to write the <see cref="BSP"/> to.</param>
-		/// <param name="compress">Whether to LZMA compress the lumps.</param>
+		/// <param name="compress">Whether to LZMA compress the lumps and the files in the pak file.</param>
 		private void WriteSourceBSP(string path, bool compress) {
 			int gameLumpIndex = GameLump.GetIndexForLump(_bsp.MapType);
 			int pakFileIndex = PakFile.GetIndexForLump(_bsp.MapType);
@@ -88,8 +91,10 @@ namespace LibBSP {
 				} else {
 					bytes = GetLumpBytes(i);
 
-					// The pakfile is a zip archive, which compresses its files itself
-					if (compress && i != pakFileIndex && bytes.Length > 0) {
+					// The pakfile is a zip archive, which compresses each of its files instead
+					if (compress && i == pakFileIndex) {
+						bytes = PakFile.Rezip(bytes, true);
+					} else if (compress && bytes.Length > 0) {
 						byte[] compressed = Lzma.Compress(bytes);
 						if (compressed.Length < bytes.Length) {
 							info.ident = bytes.Length;
