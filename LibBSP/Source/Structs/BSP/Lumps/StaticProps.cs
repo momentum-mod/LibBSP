@@ -19,7 +19,7 @@ namespace LibBSP {
 		/// <summary>
 		/// Gets or sets the lists of leaves each <see cref="StaticProp"/> occupies.
 		/// </summary>
-		public short[] LeafIndices { get; set; }
+		public int[] LeafIndices { get; set; }
 
 		/// <summary>
 		/// Gets the length of this lump in bytes.
@@ -28,8 +28,8 @@ namespace LibBSP {
 			get {
 				return 12
 				+ (ModelDictionary.Length * ModelNameLength)
-				+ (LeafIndices.Length * 2)
-				+ (Count * this[0].Data.Length);
+				+ (LeafIndices.Length * LeafIndexLength)
+				+ (Count > 0 ? Count * this[0].Data.Length : 0);
 			}
 		}
 
@@ -40,6 +40,7 @@ namespace LibBSP {
 		/// <param name="lumpInfo">The <see cref="LumpInfo"/> associated with this lump.</param>
 		public StaticProps(BSP bsp = null, LumpInfo lumpInfo = default(LumpInfo)) : base(bsp, lumpInfo) {
 			ModelDictionary = new string[] { };
+			LeafIndices = new int[] { };
 		}
 
 		/// <summary>
@@ -51,6 +52,7 @@ namespace LibBSP {
 		/// <param name="lumpInfo">The <see cref="LumpInfo"/> associated with this lump.</param>
 		public StaticProps(IEnumerable<StaticProp> items, IList<string> dictionary, BSP bsp = null, LumpInfo lumpInfo = default(LumpInfo)) : base(items, bsp, lumpInfo) {
 			this.ModelDictionary = dictionary.ToArray();
+			LeafIndices = new int[] { };
 		}
 
 		/// <summary>
@@ -61,6 +63,7 @@ namespace LibBSP {
 		/// <param name="lumpInfo">The <see cref="LumpInfo"/> associated with this lump.</param>
 		public StaticProps(int capacity, BSP bsp = null, LumpInfo lumpInfo = default(LumpInfo)) : base(capacity, bsp, lumpInfo) {
 			ModelDictionary = new string[] { };
+			LeafIndices = new int[] { };
 		}
 
 		/// <summary>
@@ -84,18 +87,19 @@ namespace LibBSP {
 					ModelDictionary[i] = data.ToNullTerminatedString(offset, ModelNameLength);
 					offset += ModelNameLength;
 				}
-				LeafIndices = new short[BitConverter.ToInt32(data, offset)];
+				LeafIndices = new int[BitConverter.ToInt32(data, offset)];
 				offset += 4;
+				int leafIndexLength = GetLeafIndexLength(bsp.MapType, lumpInfo.version);
 				for (int i = 0; i < LeafIndices.Length; ++i) {
-					LeafIndices[i] = BitConverter.ToInt16(data, offset);
-					offset += 2;
+					LeafIndices[i] = leafIndexLength == 4 ? BitConverter.ToInt32(data, offset) : BitConverter.ToUInt16(data, offset);
+					offset += leafIndexLength;
 				}
 				if (Bsp.MapType == MapType.Vindictus && lumpInfo.version == 6) {
 					int numPropScales = BitConverter.ToInt32(data, offset);
 					offset += 4 + (numPropScales * 16);
 				}
 				int numProps = BitConverter.ToInt32(data, offset);
-				if (lumpInfo.version == 12) { // So far only Titanfall
+				if (Bsp.MapType == MapType.Titanfall && lumpInfo.version == 12) {
 					offset += 12;
 				} else {
 					offset += 4;
@@ -111,6 +115,31 @@ namespace LibBSP {
 				}
 			} else {
 				ModelDictionary = new string[0];
+				LeafIndices = new int[0];
+			}
+		}
+
+		/// <summary>
+		/// Gets the length of each of the <see cref="LeafIndices"/> in the lump data.
+		/// </summary>
+		/// <param name="mapType">The map type.</param>
+		/// <param name="lumpVersion">The version of the static props lump.</param>
+		/// <returns>The length of a leaf index in <c>byte</c>s.</returns>
+		public static int GetLeafIndexLength(MapType mapType, int lumpVersion) {
+			// Strata Source's version 12 and later
+			if (mapType.IsSubtypeOf(MapType.Source) && lumpVersion >= 12) {
+				return 4;
+			}
+
+			return 2;
+		}
+
+		/// <summary>
+		/// Gets the length of each of the <see cref="LeafIndices"/> in this lump's data.
+		/// </summary>
+		private int LeafIndexLength {
+			get {
+				return Bsp == null ? 2 : GetLeafIndexLength(Bsp.MapType, LumpInfo.version);
 			}
 		}
 
@@ -119,11 +148,8 @@ namespace LibBSP {
 		/// </summary>
 		/// <returns>The data.</returns>
 		public override byte[] GetBytes() {
-			if (Count == 0) {
-				return new byte[12];
-			}
-
 			int length = Length;
+			int leafIndexLength = LeafIndexLength;
 
 			byte[] bytes = new byte[length];
 			int offset = 0;
@@ -143,8 +169,12 @@ namespace LibBSP {
 			offset += 4;
 
 			for (int i = 0; i < LeafIndices.Length; ++i) {
-				BitConverter.GetBytes(LeafIndices[i]).CopyTo(bytes, offset);
-				offset += 2;
+				if (leafIndexLength == 4) {
+					BitConverter.GetBytes(LeafIndices[i]).CopyTo(bytes, offset);
+				} else {
+					BitConverter.GetBytes((ushort)LeafIndices[i]).CopyTo(bytes, offset);
+				}
+				offset += leafIndexLength;
 			}
 
 			BitConverter.GetBytes(Count).CopyTo(bytes, offset);

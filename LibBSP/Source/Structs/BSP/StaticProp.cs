@@ -76,7 +76,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Vector3Extensions.ToVector3(Data);
 						}
 					}
@@ -96,7 +97,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							value.GetBytes().CopyTo(Data, 0);
 							break;
 						}
@@ -121,7 +123,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Vector3Extensions.ToVector3(Data, 12);
 						}
 					}
@@ -141,7 +144,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							value.GetBytes().CopyTo(Data, 12);
 							break;
 						}
@@ -175,7 +179,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return BitConverter.ToInt16(Data, 24);
 						}
 					}
@@ -195,7 +200,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							BitConverter.GetBytes(value).CopyTo(Data, 24);
 							break;
 						}
@@ -207,7 +213,7 @@ namespace LibBSP {
 		/// <summary>
 		/// Enumerates the <see cref="Leaf"/> indices referenced by this <see cref="StaticProp"/>.
 		/// </summary>
-		public IEnumerable<short> LeafIndices {
+		public IEnumerable<int> LeafIndices {
 			get {
 				for (int i = 0; i < NumLeafIndices; ++i) {
 					yield return ((StaticProps)Parent).LeafIndices[FirstLeafIndexIndex + i];
@@ -230,7 +236,9 @@ namespace LibBSP {
 						case 8:
 						case 9:
 						case 10:
-						case 11: {
+						case 11:
+						case 12:
+						case 13: {
 							return BitConverter.ToInt16(Data, 26);
 						}
 					}
@@ -248,7 +256,9 @@ namespace LibBSP {
 						case 8:
 						case 9:
 						case 10:
-						case 11: {
+						case 11:
+						case 12:
+						case 13: {
 							BitConverter.GetBytes(value).CopyTo(Data, 26);
 							break;
 						}
@@ -263,7 +273,7 @@ namespace LibBSP {
 		/// </summary>
 		public short NumLeafIndices {
 			get {
-				if (MapType == MapType.Source) {
+				if (MapType.IsSubtypeOf(MapType.Source)) {
 					switch (LumpVersion) {
 						case 4:
 						case 5:
@@ -272,7 +282,9 @@ namespace LibBSP {
 						case 8:
 						case 9:
 						case 10:
-						case 11: {
+						case 11:
+						case 12:
+						case 13: {
 							return BitConverter.ToInt16(Data, 28);
 						}
 					}
@@ -281,7 +293,7 @@ namespace LibBSP {
 				return -1;
 			}
 			set {
-				if (MapType == MapType.Source) {
+				if (MapType.IsSubtypeOf(MapType.Source)) {
 					switch (LumpVersion) {
 						case 4:
 						case 5:
@@ -290,7 +302,9 @@ namespace LibBSP {
 						case 8:
 						case 9:
 						case 10:
-						case 11: {
+						case 11:
+						case 12:
+						case 13: {
 							BitConverter.GetBytes(value).CopyTo(Data, 28);
 							break;
 						}
@@ -315,7 +329,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Data[30];
 						}
 					}
@@ -335,7 +350,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							Data[30] = value;
 							break;
 						}
@@ -360,7 +376,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Data[31];
 						}
 					}
@@ -380,7 +397,8 @@ namespace LibBSP {
 						case 9:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							Data[31] = value;
 							break;
 						}
@@ -404,7 +422,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return BitConverter.ToInt32(Data, 32);
 						}
 						case 9: {
@@ -429,7 +448,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							BitConverter.GetBytes(value).CopyTo(Data, 32);
 							break;
 						}
@@ -461,7 +481,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return BitConverter.ToSingle(Data, 36);
 						}
 						case 9: {
@@ -487,7 +508,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							BitConverter.GetBytes(value).CopyTo(Data, 36);
 							break;
 						}
@@ -519,7 +541,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return BitConverter.ToSingle(Data, 40);
 						}
 						case 9: {
@@ -545,7 +568,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							BitConverter.GetBytes(value).CopyTo(Data, 40);
 							break;
 						}
@@ -577,7 +601,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Vector3Extensions.ToVector3(Data, 44);
 						}
 						case 9: {
@@ -603,7 +628,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							value.GetBytes().CopyTo(Data, 44);
 							break;
 						}
@@ -634,7 +660,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return BitConverter.ToSingle(Data, 56);
 						}
 						case 9: {
@@ -659,7 +686,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							BitConverter.GetBytes(value).CopyTo(Data, 56);
 							break;
 						}
@@ -745,7 +773,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Data[60];
 						}
 						case 9: {
@@ -767,7 +796,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							Data[60] = value;
 							break;
 						}
@@ -795,7 +825,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Data[61];
 						}
 						case 9: {
@@ -817,7 +848,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							Data[61] = value;
 							break;
 						}
@@ -845,7 +877,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Data[62];
 						}
 						case 9: {
@@ -867,7 +900,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							Data[62] = value;
 							break;
 						}
@@ -895,7 +929,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return Data[63];
 						}
 						case 9: {
@@ -917,7 +952,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							Data[63] = value;
 							break;
 						}
@@ -946,7 +982,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							return ColorExtensions.FromArgb(Data[67], Data[64], Data[65], Data[66]);
 						}
 						case 9: {
@@ -969,7 +1006,8 @@ namespace LibBSP {
 						case 8:
 						case 10:
 						case 11:
-						case 12: {
+						case 12:
+						case 13: {
 							value.GetBytes().CopyTo(Data, 64);
 							break;
 						}
@@ -993,7 +1031,8 @@ namespace LibBSP {
 			get {
 				if (MapType.IsSubtypeOf(MapType.Source)) {
 					switch (LumpVersion) {
-						case 11: {
+						case 11:
+						case 12: {
 							return BitConverter.ToSingle(Data, 76);
 						}
 					}
@@ -1004,8 +1043,36 @@ namespace LibBSP {
 			set {
 				if (MapType.IsSubtypeOf(MapType.Source)) {
 					switch (LumpVersion) {
-						case 11: {
+						case 11:
+						case 12: {
 							BitConverter.GetBytes(value).CopyTo(Data, 76);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the scale on each axis of this <see cref="StaticProp"/>, which version 13 supports.
+		/// </summary>
+		public Vector3 Scales {
+			get {
+				if (MapType.IsSubtypeOf(MapType.Source)) {
+					switch (LumpVersion) {
+						case 13: {
+							return Vector3Extensions.ToVector3(Data, 76);
+						}
+					}
+				}
+
+				return new Vector3(float.NaN, float.NaN, float.NaN);
+			}
+			set {
+				if (MapType.IsSubtypeOf(MapType.Source)) {
+					switch (LumpVersion) {
+						case 13: {
+							value.GetBytes().CopyTo(Data, 76);
 							break;
 						}
 					}
