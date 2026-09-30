@@ -151,6 +151,7 @@
     <Compile Include="Source\Util\DoomEditMapWriter.cs" />
     <Compile Include="Source\Util\GearcraftMapWriter.cs" />
     <Compile Include="Source\Util\HammerMapWriter.cs" />
+    <Compile Include="Source\Util\Lzma.cs" />
     <Compile Include="Source\Util\MoHRadiantMapWriter.cs" />
     <Compile Include="Source\Util\RadiantMapWriter.cs" />
     <Compile Include="Source\Util\Revision.cs" />

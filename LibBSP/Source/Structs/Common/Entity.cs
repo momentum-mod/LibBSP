@@ -32,6 +32,11 @@ namespace LibBSP {
 		public const char ConnectionMemberSeparater = (char)0x1B;
 
 		/// <summary>
+		/// Encoding of entity text. Each byte maps to one character, so any text survives being read and written.
+		/// </summary>
+		public static readonly Encoding TextEncoding = Encoding.GetEncoding(28591);
+
+		/// <summary>
 		/// The <see cref="ILump"/> this <see cref="ILumpObject"/> came from.
 		/// </summary>
 		public ILump Parent { get; private set; }
@@ -42,10 +47,10 @@ namespace LibBSP {
 		/// </summary>
 		public byte[] Data {
 			get {
-				return Encoding.ASCII.GetBytes(ToString());
+				return TextEncoding.GetBytes(ToString());
 			}
 			set {
-				ParseString(Encoding.ASCII.GetString(value));
+				ParseString(TextEncoding.GetString(value));
 			}
 		}
 
@@ -397,7 +402,6 @@ namespace LibBSP {
 			string val = "";
 			bool inQuotes = false;
 			bool isVal = false;
-			int numCommas = 0;
 			st.Trim('\r', '\n', '\t');
 			for (int i = 0; i < st.Length; ++i) {
 				// Some entity values in Source can use escape sequenced quotes. Need to make sure not to parse those.
@@ -415,43 +419,47 @@ namespace LibBSP {
 							key += st[i];
 						} else {
 							val += st[i];
-							if (st[i] == ',' || st[i] == ConnectionMemberSeparater) { ++numCommas; }
 						}
 					}
 				}
 			}
 			val.Replace("\\\"", "\"");
 			if (key != null && isVal) {
-				if (numCommas == 4 || numCommas == 6) {
-					st = st.Replace(',', ConnectionMemberSeparater);
-					string[] connection = val.Split(',');
-					if (connection.Length < 5) {
-						connection = val.Split((char)0x1B);
-					}
-					if (connection.Length == 5 || connection.Length == 7) {
-						try {
-							connections.Add(new EntityConnection {
-								name = key,
-								target = connection[0],
-								action = connection[1],
-								param = connection[2],
-								delay = float.Parse(connection[3], _format),
-								fireOnce = int.Parse(connection[4]),
-								unknown0 = connection.Length > 5 ? connection[5] : "",
-								unknown1 = connection.Length > 6 ? connection[6] : "",
-							});
-						} catch (FormatException) {
-							// If that fails, assume a false positive and just add this as a normal keyvalue pair.
-							if (!ContainsKey(key)) {
-								this[key] = val;
-							}
-						}
+				// Newer Source engine games separate connection members with ESC, so parameters can contain commas
+				char separator = val.IndexOf(ConnectionMemberSeparater) >= 0 ? ConnectionMemberSeparater : ',';
+				string[] connection = val.Split(separator);
+				if (connection.Length == 5 || connection.Length == 7) {
+					try {
+						connections.Add(new EntityConnection {
+							name = key,
+							target = connection[0],
+							action = connection[1],
+							param = connection[2],
+							delay = float.Parse(connection[3], _format),
+							fireOnce = int.Parse(connection[4]),
+							unknown0 = connection.Length > 5 ? connection[5] : "",
+							unknown1 = connection.Length > 6 ? connection[6] : "",
+							separator = separator,
+						});
+					} catch (FormatException) {
+						// If that fails, assume a false positive and just add this as a normal keyvalue pair.
+						AddKeyValue(key, val);
 					}
 				} else {
-					if (!ContainsKey(key)) {
-						this[key] = val;
-					}
+					AddKeyValue(key, val);
 				}
+			}
+		}
+
+		/// <summary>
+		/// Adds an attribute parsed from entity data, if it should replace any earlier value.
+		/// </summary>
+		/// <param name="key">Name of the attribute.</param>
+		/// <param name="val">Value of the attribute.</param>
+		private void AddKeyValue(string key, string val) {
+			// Source engine applies every keyvalue in order so the last one wins, where Quake engines use the first
+			if (!ContainsKey(key) || MapType.IsSubtypeOf(MapType.Source)) {
+				this[key] = val;
 			}
 		}
 
@@ -686,6 +694,10 @@ namespace LibBSP {
 			// These exist in Dark Messiah only.
 			public string unknown0;
 			public string unknown1;
+			/// <summary>
+			/// The character between members of this connection. Defaults to a comma when unset.
+			/// </summary>
+			public char separator;
 
 			/// <summary>
 			/// Get a string representation of this <see cref="EntityConnection"/>.
@@ -701,10 +713,11 @@ namespace LibBSP {
 			/// <param name="mapType">The <see cref="LibBSP.MapType"/> of the map the <see cref="Entity"/> came from.</param>
 			/// <returns>String representation of this <see cref="EntityConnection"/>.</returns>
 			public string ToString(MapType mapType) {
+				char s = separator == '\0' ? ',' : separator;
 				if (mapType == MapType.DMoMaM) {
-					return string.Format("\"{0}\" \"{1},{2},{3},{4},{5},{6},{7}\"", name, target, action, param, delay.ToString(_format), fireOnce, unknown0, unknown1);
+					return string.Format("\"{0}\" \"{1}{8}{2}{8}{3}{8}{4}{8}{5}{8}{6}{8}{7}\"", name, target, action, param, delay.ToString(_format), fireOnce, unknown0, unknown1, s);
 				} else {
-					return string.Format("\"{0}\" \"{1},{2},{3},{4},{5}\"", name, target, action, param, delay.ToString(_format), fireOnce);
+					return string.Format("\"{0}\" \"{1}{6}{2}{6}{3}{6}{4}{6}{5}\"", name, target, action, param, delay.ToString(_format), fireOnce, s);
 				}
 			}
 		}

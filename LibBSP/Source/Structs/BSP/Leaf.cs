@@ -129,7 +129,8 @@ namespace LibBSP {
 				} else if (MapType == MapType.Source25) {
 					return BitConverter.ToUInt16(Data, 8);
 				} else if (MapType.IsSubtypeOf(MapType.Source) && MapType != MapType.Vindictus) {
-					return Data[6];
+					// Shares a short with the flags
+					return BitConverter.ToUInt16(Data, 6) & 0x1FF;
 				}
 
 				return -1;
@@ -146,7 +147,8 @@ namespace LibBSP {
 					Data[8] = bytes[0];
 					Data[9] = bytes[1];
 				} else if (MapType.IsSubtypeOf(MapType.Source) && MapType != MapType.Vindictus) {
-					Data[6] = bytes[0];
+					int packed = (BitConverter.ToUInt16(Data, 6) & ~0x1FF) | (value & 0x1FF);
+					BitConverter.GetBytes((ushort)packed).CopyTo(Data, 6);
 				}
 			}
 		}
@@ -161,7 +163,8 @@ namespace LibBSP {
 				} else if (MapType == MapType.Source25) {
 					return BitConverter.ToInt16(Data, 10);
 				} else if (MapType.IsSubtypeOf(MapType.Source)) {
-					return Data[7];
+					// Shares a short with the area
+					return BitConverter.ToUInt16(Data, 6) >> 9;
 				}
 
 				return -1;
@@ -175,7 +178,8 @@ namespace LibBSP {
 					Data[10] = bytes[0];
 					Data[11] = bytes[1];
 				} else if (MapType.IsSubtypeOf(MapType.Source)) {
-					Data[7] = bytes[0];
+					int packed = (BitConverter.ToUInt16(Data, 6) & 0x1FF) | ((value & 0x7F) << 9);
+					BitConverter.GetBytes((ushort)packed).CopyTo(Data, 6);
 				}
 			}
 		}
@@ -789,6 +793,9 @@ namespace LibBSP {
 				|| mapType == MapType.Source19
 				|| mapType == MapType.Vindictus
 				|| mapType == MapType.Source25) {
+				return 56;
+			} else if ((mapType == MapType.Source20 || mapType == MapType.Source21) && lumpVersion == 0) {
+				// Version 0 leaves still store their ambient lighting
 				return 56;
 			} else if (mapType.IsSubtypeOf(MapType.Source)
 				|| mapType == MapType.SoF

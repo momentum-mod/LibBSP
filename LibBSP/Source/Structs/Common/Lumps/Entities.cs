@@ -200,7 +200,7 @@ namespace LibBSP {
 
 			sb.Append((char)0x00);
 
-			return Encoding.ASCII.GetBytes(sb.ToString());
+			return Entity.TextEncoding.GetBytes(sb.ToString());
 		}
 	}
 }

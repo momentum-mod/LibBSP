@@ -25,7 +25,17 @@ namespace LibBSP {
 	/// </summary>
 	public class GameLump : Dictionary<GameLumpType, LumpInfo>, ILump {
 
+		/// <summary>
+		/// Flag set on LZMA compressed game lumps.
+		/// </summary>
+		public const int CompressedFlag = 1;
+
 		private Dictionary<GameLumpType, ILump> _lumps;
+
+		/// <summary>
+		/// The length in the file of each compressed game lump. Their <see cref="LumpInfo.length"/> is the uncompressed length.
+		/// </summary>
+		private Dictionary<GameLumpType, int> _compressedLengths = new Dictionary<GameLumpType, int>();
 
 		/// <summary>
 		/// The <see cref="BSP"/> this <see cref="ILump"/> came from.
@@ -98,7 +108,7 @@ namespace LibBSP {
 
 			if (numGameLumps > 0) {
 				int lumpDictionaryOffset = (bsp.MapType == MapType.DMoMaM) ? 8 : 4;
-				int lowestLumpOffset = int.MaxValue;
+				List<LumpInfo> infos = new List<LumpInfo>(numGameLumps);
 
 				for (int i = 0; i < numGameLumps; ++i) {
 					int lumpIdent = BitConverter.ToInt32(data, (i * structLength) + lumpDictionaryOffset);
@@ -119,20 +129,36 @@ namespace LibBSP {
 						lumpLength = BitConverter.ToInt32(data, (i * structLength) + lumpDictionaryOffset + 12);
 					}
 
-					LumpInfo info = new LumpInfo {
+					infos.Add(new LumpInfo {
 						ident = lumpIdent,
 						flags = lumpFlags,
 						version = lumpVersion,
 						offset = lumpOffset,
 						length = lumpLength,
 						lumpFile = lumpInfo.lumpFile,
-					};
+					});
+				}
+
+				for (int i = 0; i < infos.Count; ++i) {
+					LumpInfo info = infos[i];
+					// Compressed game lumps are followed by an empty entry, which only marks where the last one ends
+					if (info.ident == 0) {
+						continue;
+					}
 
 					this[(GameLumpType)info.ident] = info;
+				}
 
-					if (info.offset < lowestLumpOffset) {
-						lowestLumpOffset = info.offset;
+				// The length of a compressed game lump isn't stored, it ends where the next one starts
+				int end = GetLowestLumpOffset() < lumpInfo.offset ? data.Length : lumpInfo.offset + data.Length;
+				for (int i = 0; i < infos.Count; ++i) {
+					LumpInfo info = infos[i];
+					if (info.ident == 0 || (info.flags & CompressedFlag) == 0) {
+						continue;
 					}
+
+					int next = i + 1 < infos.Count && infos[i + 1].offset > info.offset ? infos[i + 1].offset : end;
+					_compressedLengths[(GameLumpType)info.ident] = next - info.offset;
 				}
 			}
 		}
@@ -257,22 +283,24 @@ namespace LibBSP {
 		/// Gets the bytes for a <see cref="LibBSP.LumpInfo"/>, if it exists.
 		/// </summary>
 		/// <param name="info">The <see cref="LibBSP.LumpInfo"/> to get data for.</param>
-		/// <returns>The data for <paramref name="info"/>, or <c>null</c> if it does not exist.</returns>
+		/// <returns>The data for <paramref name="info"/>, decompressed if necessary, or <c>null</c> if it does not exist.</returns>
 		public byte[] ReadLump(LumpInfo info) {
 			GameLumpType gameLumpType = (GameLumpType)info.ident;
 			if (ContainsKey(gameLumpType)) {
-				byte[] thisLump;
+				int compressedLength = 0;
+				bool compressed = (info.flags & CompressedFlag) != 0 && _compressedLengths.TryGetValue(gameLumpType, out compressedLength);
+				if (compressed) {
+					info.length = compressedLength;
+				}
+
 				// GameLump lumps may have their offset specified from either the beginning of the GameLump, or the beginning of the file.
 				if (GetLowestLumpOffset() < LumpInfo.offset) {
-					thisLump = Bsp.Reader.ReadLump(new LumpInfo() {
-						ident = info.ident,
-						flags = info.flags,
-						version = info.version,
-						offset = info.offset + LumpInfo.offset,
-						length = info.length
-					});
-				} else {
-					thisLump = Bsp.Reader.ReadLump(info);
+					info.offset += LumpInfo.offset;
+				}
+
+				byte[] thisLump = Bsp.Reader.ReadLump(info);
+				if (compressed) {
+					thisLump = Lzma.Decompress(thisLump);
 				}
 
 				return thisLump;
@@ -304,65 +332,113 @@ namespace LibBSP {
 		}
 
 		/// <summary>
-		/// Gets all the data in this lump as a byte array.
+		/// Gets all the data in this lump as a byte array, with every game lump uncompressed.
 		/// </summary>
+		/// <remarks>
+		/// Game lump offsets are from the start of the file, so <see cref="LumpInfo"/> has to hold this lump's final offset.
+		/// </remarks>
 		/// <returns>The data.</returns>
 		public byte[] GetBytes() {
+			return GetBytes(false, LumpInfo.offset);
+		}
+
+		/// <summary>
+		/// Gets all the data in this lump as a byte array, for writing it at <paramref name="lumpOffset"/>.
+		/// </summary>
+		/// <remarks>
+		/// Game lump offsets are from the start of the file. Afterwards, they point to where they'll be once this lump is
+		/// written at <paramref name="lumpOffset"/>.
+		/// </remarks>
+		/// <param name="compress">Whether to LZMA compress each game lump.</param>
+		/// <param name="lumpOffset">The offset in the file this lump will be written at.</param>
+		/// <returns>The data.</returns>
+		public byte[] GetBytes(bool compress, int lumpOffset) {
 			if (Count == 0) {
 				return new byte[] { 0, 0, 0, 0 };
 			}
 
 			int lumpInfoLength = (Bsp.MapType == MapType.DMoMaM || Bsp.MapType == MapType.Vindictus) ? 20 : 16;
 			int lumpDictionaryOffset = (Bsp.MapType == MapType.DMoMaM) ? 8 : 4;
-			int length = lumpDictionaryOffset + (lumpInfoLength * Count);
 
-			Dictionary<GameLumpType, byte[]> lumpBytes = new Dictionary<GameLumpType, byte[]>(Count);
-			foreach (GameLumpType type in Keys) {
-				if (_lumps.ContainsKey(type)) {
-					lumpBytes[type] = _lumps[type].GetBytes();
-				} else {
-					lumpBytes[type] = ReadLump(this[type]);
+			// Read everything before updating the offsets, which point into the file being read
+			List<GameLumpType> types = new List<GameLumpType>(Keys);
+			List<byte[]> lumpBytes = new List<byte[]>(Count);
+			List<LumpInfo> infos = new List<LumpInfo>(Count);
+			bool anyCompressed = false;
+			foreach (GameLumpType type in types) {
+				byte[] data = _lumps.ContainsKey(type) ? _lumps[type].GetBytes() : ReadLump(this[type]);
+
+				LumpInfo info = this[type];
+				info.length = data.Length;
+				info.flags &= ~CompressedFlag;
+
+				if (compress && data.Length > 0) {
+					byte[] compressed = Lzma.Compress(data);
+					if (compressed.Length < data.Length) {
+						data = compressed;
+						info.flags |= CompressedFlag;
+						anyCompressed = true;
+					}
 				}
 
-				length += lumpBytes[type].Length;
+				lumpBytes.Add(data);
+				infos.Add(info);
+			}
+
+			// The empty entry marks where the last compressed game lump ends
+			int numEntries = Count + (anyCompressed ? 1 : 0);
+			int length = lumpDictionaryOffset + (lumpInfoLength * numEntries);
+			foreach (byte[] data in lumpBytes) {
+				length += data.Length;
 			}
 
 			byte[] bytes = new byte[length];
-			BitConverter.GetBytes(lumpBytes.Count).CopyTo(bytes, 0);
-			int lumpNumber = 0;
-			int offset = lumpDictionaryOffset + (lumpBytes.Count * lumpInfoLength);
-			int headerEntryLength = (Bsp.MapType == MapType.DMoMaM || Bsp.MapType == MapType.Vindictus) ? 20 : 16;
+			BitConverter.GetBytes(numEntries).CopyTo(bytes, 0);
+			int offset = lumpDictionaryOffset + (numEntries * lumpInfoLength);
+			_compressedLengths.Clear();
 
-			foreach (KeyValuePair<GameLumpType, byte[]> pair in lumpBytes) {
-				LumpInfo info = this[pair.Key];
-				info.length = pair.Value.Length;
-				info.offset = offset;
-				if (offset < length) {
-					info.offset += LumpInfo.offset;
-				}
-				this[pair.Key] = info;
-
-				BitConverter.GetBytes(info.ident).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset);
-
-				if (Bsp.MapType == MapType.Vindictus) {
-					BitConverter.GetBytes(info.flags).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 4);
-					BitConverter.GetBytes(info.version).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 8);
-					BitConverter.GetBytes(info.offset).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 12);
-					BitConverter.GetBytes(info.length).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 16);
-				} else {
-					BitConverter.GetBytes((short)info.flags).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 4);
-					BitConverter.GetBytes((short)info.version).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 6);
-					BitConverter.GetBytes(info.offset).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 8);
-					BitConverter.GetBytes(info.length).CopyTo(bytes, (lumpNumber * headerEntryLength) + lumpDictionaryOffset + 12);
+			for (int i = 0; i < types.Count; ++i) {
+				LumpInfo info = infos[i];
+				info.offset = lumpOffset + offset;
+				this[types[i]] = info;
+				if ((info.flags & CompressedFlag) != 0) {
+					_compressedLengths[types[i]] = lumpBytes[i].Length;
 				}
 
-				lumpBytes[pair.Key].CopyTo(bytes, offset);
+				WriteLumpInfo(bytes, lumpDictionaryOffset + (i * lumpInfoLength), info);
+				lumpBytes[i].CopyTo(bytes, offset);
+				offset += lumpBytes[i].Length;
+			}
 
-				offset += lumpBytes[pair.Key].Length;
-				++lumpNumber;
+			if (anyCompressed) {
+				WriteLumpInfo(bytes, lumpDictionaryOffset + (types.Count * lumpInfoLength), new LumpInfo() {
+					offset = lumpOffset + offset
+				});
 			}
 
 			return bytes;
+		}
+
+		/// <summary>
+		/// Writes <paramref name="info"/> into this lump's directory.
+		/// </summary>
+		/// <param name="bytes">The lump data.</param>
+		/// <param name="offset">The offset of the game lump's entry in the directory.</param>
+		/// <param name="info">The game lump's information.</param>
+		private void WriteLumpInfo(byte[] bytes, int offset, LumpInfo info) {
+			BitConverter.GetBytes(info.ident).CopyTo(bytes, offset);
+
+			if (Bsp.MapType == MapType.Vindictus) {
+				BitConverter.GetBytes(info.flags).CopyTo(bytes, offset + 4);
+				BitConverter.GetBytes(info.version).CopyTo(bytes, offset + 8);
+				BitConverter.GetBytes(info.offset).CopyTo(bytes, offset + 12);
+				BitConverter.GetBytes(info.length).CopyTo(bytes, offset + 16);
+			} else {
+				BitConverter.GetBytes((short)info.flags).CopyTo(bytes, offset + 4);
+				BitConverter.GetBytes((short)info.version).CopyTo(bytes, offset + 6);
+				BitConverter.GetBytes(info.offset).CopyTo(bytes, offset + 8);
+				BitConverter.GetBytes(info.length).CopyTo(bytes, offset + 12);
+			}
 		}
 	}
 }

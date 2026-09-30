@@ -80,6 +80,9 @@ namespace LibBSP {
 				int length = magicLength + (lumpInfoLength * numLumps);
 				if (mapType.IsSubtypeOf(MapType.UberTools)) {
 					length += 4;
+				} else if (mapType.IsSubtypeOf(MapType.Source)) {
+					// Map revision
+					length += 4;
 				}
 
 				byte[] bytes;
@@ -103,7 +106,8 @@ namespace LibBSP {
 		/// </summary>
 		/// <param name="info">The <see cref="LumpInfo"/> object representing the lump's information.</param>
 		/// <returns>
-		/// A <c>byte</c> array containing the data from the file for the lump at the offset with the length from "<paramref name="info"/>".
+		/// A <c>byte</c> array containing the data from the file for the lump at the offset with the length from "<paramref name="info"/>",
+		/// decompressed if it's a compressed Source engine lump.
 		/// </returns>
 		public byte[] ReadLump(LumpInfo info) {
 			if (info.length == 0) { return new byte[0]; }
@@ -117,6 +121,11 @@ namespace LibBSP {
 			
 			if (key.Length != 0) {
 				output = XorWithKeyStartingAtIndex(output, info.offset);
+			}
+
+			// Source engine lumps can be LZMA compressed, in which case the ident is the uncompressed length
+			if (info.ident > 0 && Lzma.IsCompressed(output) && Lzma.GetUncompressedLength(output) == info.ident) {
+				output = Lzma.Decompress(output);
 			}
 
 			return output;

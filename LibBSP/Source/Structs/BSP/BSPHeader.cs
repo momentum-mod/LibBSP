@@ -145,6 +145,10 @@ namespace LibBSP {
 						offset = magic.Length + 4;
 						newData = new byte[offset + (lumpInfoLength * numLumps)];
 						Revision = revision + 1;
+					} else if (Bsp.MapType.IsSubtypeOf(MapType.Source)) {
+						offset = magic.Length;
+						newData = new byte[GetSourceHeaderLength(Bsp.MapType)];
+						BitConverter.GetBytes(MapRevision).CopyTo(newData, newData.Length - 4);
 					} else {
 						offset = magic.Length;
 						newData = new byte[offset + (lumpInfoLength * numLumps)];
@@ -176,20 +180,13 @@ namespace LibBSP {
 							lumpIdent = lumpInfo.ident;
 						}
 
-						if (Bsp.MapType == MapType.L4D2 || Bsp.MapType == MapType.Source27) {
-							BitConverter.GetBytes(lumpVersion).CopyTo(newData, offset);
-							if (lumpLength > 0) {
-								BitConverter.GetBytes(lumpOffset).CopyTo(newData, offset + 4);
-							}
-							BitConverter.GetBytes(lumpLength).CopyTo(newData, offset + 8);
-							BitConverter.GetBytes(lumpIdent).CopyTo(newData, offset + 12);
-						} else if (Bsp.MapType.IsSubtypeOf(MapType.Source)) {
-							if (lumpLength > 0) {
-								BitConverter.GetBytes(lumpOffset).CopyTo(newData, offset);
-							}
-							BitConverter.GetBytes(lumpLength).CopyTo(newData, offset + 4);
-							BitConverter.GetBytes(lumpVersion).CopyTo(newData, offset + 8);
-							BitConverter.GetBytes(lumpIdent).CopyTo(newData, offset + 12);
+						if (Bsp.MapType.IsSubtypeOf(MapType.Source)) {
+							WriteSourceLumpInfo(Bsp.MapType, newData, offset, new LumpInfo() {
+								offset = lumpLength > 0 ? lumpOffset : 0,
+								length = lumpLength,
+								version = lumpVersion,
+								ident = lumpIdent
+							});
 						} else if (Bsp.MapType == MapType.CoD || Bsp.MapType == MapType.CoD2) {
 							BitConverter.GetBytes(lumpLength).CopyTo(newData, offset);
 							if (lumpLength > 0) {
@@ -212,6 +209,74 @@ namespace LibBSP {
 			} else {
 				return new BSPHeader(Bsp, new byte[0]);
 			}
+		}
+
+		/// <summary>
+		/// Gets the map revision of a Source engine <see cref="Bsp"/>, or 0 for other formats.
+		/// </summary>
+		public int MapRevision {
+			get {
+				if (Bsp == null || !Bsp.MapType.IsSubtypeOf(MapType.Source)) {
+					return 0;
+				}
+
+				int offset = GetSourceHeaderLength(Bsp.MapType) - 4;
+				if (Data == null || Data.Length < offset + 4) {
+					return 0;
+				}
+
+				return BitConverter.ToInt32(Data, offset);
+			}
+		}
+
+		/// <summary>
+		/// Creates the header for a Source engine <paramref name="bsp"/> from its lump information.
+		/// </summary>
+		/// <param name="bsp">The <see cref="BSP"/> the header is for.</param>
+		/// <param name="lumpInfos">The information for every lump, in lump order.</param>
+		/// <param name="mapRevision">The map revision.</param>
+		/// <returns>The new header.</returns>
+		public static BSPHeader CreateSourceHeader(BSP bsp, IList<LumpInfo> lumpInfos, int mapRevision) {
+			byte[] magic = GetMagic(bsp.MapType);
+			int lumpInfoLength = GetLumpInfoLength(bsp.MapType);
+			byte[] data = new byte[GetSourceHeaderLength(bsp.MapType)];
+
+			magic.CopyTo(data, 0);
+			for (int i = 0; i < lumpInfos.Count; ++i) {
+				WriteSourceLumpInfo(bsp.MapType, data, magic.Length + (lumpInfoLength * i), lumpInfos[i]);
+			}
+			BitConverter.GetBytes(mapRevision).CopyTo(data, data.Length - 4);
+
+			return new BSPHeader(bsp, data);
+		}
+
+		/// <summary>
+		/// Gets the length of the header of a Source engine BSP of type <paramref name="type"/>.
+		/// </summary>
+		/// <param name="type">The type of <see cref="BSP"/>.</param>
+		/// <returns>The length of the header, including the map revision.</returns>
+		public static int GetSourceHeaderLength(MapType type) {
+			return GetMagic(type).Length + (GetLumpInfoLength(type) * BSP.GetNumLumps(type)) + 4;
+		}
+
+		/// <summary>
+		/// Writes <paramref name="info"/> into the lump table of a Source engine BSP header.
+		/// </summary>
+		/// <param name="type">The type of <see cref="BSP"/>.</param>
+		/// <param name="data">The header data.</param>
+		/// <param name="offset">The offset of the lump's entry in the table.</param>
+		/// <param name="info">The lump's information.</param>
+		private static void WriteSourceLumpInfo(MapType type, byte[] data, int offset, LumpInfo info) {
+			if (type == MapType.L4D2 || type == MapType.Source27) {
+				BitConverter.GetBytes(info.version).CopyTo(data, offset);
+				BitConverter.GetBytes(info.offset).CopyTo(data, offset + 4);
+				BitConverter.GetBytes(info.length).CopyTo(data, offset + 8);
+			} else {
+				BitConverter.GetBytes(info.offset).CopyTo(data, offset);
+				BitConverter.GetBytes(info.length).CopyTo(data, offset + 4);
+				BitConverter.GetBytes(info.version).CopyTo(data, offset + 8);
+			}
+			BitConverter.GetBytes(info.ident).CopyTo(data, offset + 12);
 		}
 
 		/// <summary>
