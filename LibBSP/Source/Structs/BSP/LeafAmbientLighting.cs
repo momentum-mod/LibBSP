@@ -260,12 +260,12 @@ namespace LibBSP {
 		/// <exception cref="ArgumentException">This struct is not valid or is not implemented for the given <paramref name="mapType"/> and <paramref name="lumpVersion"/>.</exception>
 		public static int GetStructLength(MapType mapType, int lumpVersion = 0) {
 			if (mapType.IsSubtypeOf(MapType.Source)) {
-				// Version 0 is just the CompressedLightCube (6 * ColorRGBExp32).
-				// Version 1 adds a byte position (x, y, z) plus a padding byte.
-				if (lumpVersion == 0) {
-					return 24;
+				// Version 1 adds a byte position (x, y, z) plus a padding byte to the CompressedLightCube (6 * ColorRGBExp32).
+				// Any other version, including garbage versions in some older maps, is read as a CompressedLightCube per leaf.
+				if (lumpVersion == 1) {
+					return 28;
 				}
-				return 28;
+				return 24;
 			}
 
 			throw new ArgumentException("Lump object " + MethodBase.GetCurrentMethod().DeclaringType.Name + " does not exist in map type " + mapType + " or has not been implemented.");
