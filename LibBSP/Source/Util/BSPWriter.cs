@@ -95,11 +95,10 @@ namespace LibBSP {
 					if (compress && i == pakFileIndex) {
 						bytes = PakFile.Rezip(bytes, true);
 					} else if (compress && bytes.Length > 0) {
-						byte[] compressed = Lzma.Compress(bytes);
-						if (compressed.Length < bytes.Length) {
-							info.ident = bytes.Length;
-							bytes = compressed;
-						}
+						// Compress every lump, even the tiny ones LZMA's header makes bigger, like bspzip -compress.
+						// Tools (e.g. Momentum's map submission) go by every lump having its uncompressed size set.
+						info.ident = bytes.Length;
+						bytes = Lzma.Compress(bytes);
 					}
 				}
 
