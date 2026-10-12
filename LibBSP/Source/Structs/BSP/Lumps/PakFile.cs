@@ -1,5 +1,7 @@
-﻿using SharpCompress.Archives.Zip;
+﻿using SharpCompress.Archives;
+using SharpCompress.Archives.Zip;
 using SharpCompress.Common;
+using SharpCompress.Writers.Zip;
 using System;
 using System.IO;
 using System.Linq;
@@ -74,7 +76,7 @@ namespace LibBSP {
 		}
 
 		public ZipArchive GetZipArchive() {
-			return ZipArchive.Open(new MemoryStream(Data));
+			return (ZipArchive)ZipArchive.OpenArchive(new MemoryStream(Data));
 		}
 
 		public void SetZipArchive(ZipArchive zip, bool compress) {
@@ -101,7 +103,7 @@ namespace LibBSP {
 			}
 
 			CompressionType compressionType = compress ? CompressionType.LZMA : CompressionType.None;
-			using (ZipArchive zip = ZipArchive.Open(new MemoryStream(data))) {
+			using (ZipArchive zip = (ZipArchive)ZipArchive.OpenArchive(new MemoryStream(data))) {
 				if (zip.Entries.Where(x => !x.IsDirectory).All(x => x.CompressionType == compressionType)) {
 					return data;
 				}
@@ -119,7 +121,7 @@ namespace LibBSP {
 		private static byte[] GetZipBytes(ZipArchive zip, bool compress) {
 			using (var stream = new MemoryStream()) {
 				var compressionType = compress ? CompressionType.LZMA : CompressionType.None;
-				zip.SaveTo(stream, new SharpCompress.Writers.WriterOptions(compressionType));
+				((IWritableArchive<ZipWriterOptions>)zip).SaveTo(stream, new ZipWriterOptions(compressionType));
 				return stream.ToArray();
 			}
 		}

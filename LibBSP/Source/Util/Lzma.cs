@@ -73,7 +73,7 @@ namespace LibBSP {
 
 			byte[] output = new byte[uncompressedLength];
 			using (MemoryStream input = new MemoryStream(data, offset + HeaderLength, compressedLength, false))
-			using (LzmaStream lzma = new LzmaStream(properties, input, compressedLength, uncompressedLength)) {
+			using (LzmaStream lzma = LzmaStream.Create(properties, input, compressedLength, uncompressedLength)) {
 				int read = 0;
 				while (read < output.Length) {
 					int count = lzma.Read(output, read, output.Length - read);
@@ -100,7 +100,7 @@ namespace LibBSP {
 
 				byte[] properties;
 				// Disposing the encoder flushes it, but leaves the output stream open
-				using (LzmaStream lzma = new LzmaStream(new LzmaEncoderProperties(), false, output)) {
+				using (LzmaStream lzma = LzmaStream.Create(new LzmaEncoderProperties(), false, output)) {
 					lzma.Write(data, 0, data.Length);
 					properties = lzma.Properties;
 				}
