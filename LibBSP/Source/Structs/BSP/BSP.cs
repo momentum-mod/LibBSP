@@ -871,6 +871,42 @@ namespace LibBSP {
 		}
 
 		/// <summary>
+		/// A <see cref="LibBSP.MapFlags"/> object holding the level flags of this <see cref="BSP"/>.
+		/// </summary>
+		public MapFlags MapFlags {
+			get {
+				int index = MapFlags.GetIndexForLump(MapType);
+
+				if (index >= 0) {
+					if (!_lumps.ContainsKey(index)) {
+						_lumps.Add(index, new MapFlags(Reader.ReadLump(this[index]), this, this[index]));
+					}
+
+					return (MapFlags)_lumps[index];
+				}
+
+				return null;
+			}
+			set {
+				int index = MapFlags.GetIndexForLump(MapType);
+				if (index >= 0) {
+					_lumps[index] = value;
+					value.Bsp = this;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Has the <see cref="LibBSP.MapFlags"/> lump been loaded yet?
+		/// </summary>
+		public bool MapFlagsLoaded {
+			get {
+				int index = MapFlags.GetIndexForLump(MapType);
+				return LumpLoaded(index);
+			}
+		}
+
+		/// <summary>
 		/// A <see cref="LibBSP.Occlusion"/> object holding occlusion data for this <see cref="BSP"/>.
 		/// </summary>
 		public Occlusion Occlusion {

@@ -120,6 +120,7 @@
     <Compile Include="Source\Structs\BSP\Lumps\FaceIds.cs" />
     <Compile Include="Source\Structs\BSP\Lumps\GameLump.cs" />
     <Compile Include="Source\Structs\BSP\Lumps\Lightmaps.cs" />
+    <Compile Include="Source\Structs\BSP\Lumps\MapFlags.cs" />
     <Compile Include="Source\Structs\BSP\Lumps\Occlusion.cs" />
     <Compile Include="Source\Structs\BSP\Lumps\StaticProps.cs" />
     <Compile Include="Source\Structs\BSP\Lumps\Textures.cs" />
